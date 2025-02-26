@@ -41,8 +41,12 @@ $RECYCLE.BIN/
 #-------------------------
 # These should never be under version control,
 # as it poses a security risk.
+index.php
+.htaccess
 .env
 .vagrant
+robots.txt
+favicon.ico
 Vagrantfile
 
 #-------------------------
