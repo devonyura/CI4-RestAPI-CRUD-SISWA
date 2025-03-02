@@ -5,9 +5,19 @@ namespace App\Controllers;
 use App\Models\UserModel;
 use CodeIgniter\RESTful\ResourceController;
 use App\Helpers\JwtHelper;
+use Config\Services;
+use App\Models\ActivityLogModel;
+
 
 class AuthController extends ResourceController
 {
+  protected $logModel;
+
+  public function __construct()
+  {
+    $this->logModel = new ActivityLogModel();
+  }
+
   public function register()
   {
     $rules = [
@@ -31,6 +41,7 @@ class AuthController extends ResourceController
     $model = new UserModel();
     $model->insert($userData);
 
+    $this->logModel->logActivity(null, $data->username, 'REGISTER', ['Registrasi Berhasil!']);
     return $this->response->setJSON([
       'status' => 'success',
       'message' => 'Registrasi Berhasil!',
@@ -47,16 +58,23 @@ class AuthController extends ResourceController
     $user = $model->where('username', $data->username)->first();
 
     if (!$user || !password_verify($data->password, $user['password'])) {
-      return $this->failUnauthorized('Username atau password salah');
+      $this->logModel->logActivity($user['id'], $user['username'], 'LOGIN', ['Username atau password salah']);
+      return Services::response()
+        ->setJSON([
+          'status' => 'failUnauthorized',
+          'message' => 'Username atau password salah',
+        ])
+        ->setStatusCode(401);
     }
 
     // Generate JWT
     $token = $jwtHelper->generateJWT(['id' => $user['id'], 'username' => $user['username'], 'role' => $user['role']]);
 
-    // return $this->respond(['token' => $token]);
+    $this->logModel->logActivity($user['id'], $user['username'], 'LOGIN', ['Login Berhasil!']);
+
     return $this->response->setJSON([
       'status' => 'success',
-      'message' => 'Registrasi Berhasil!',
+      'message' => 'Login Berhasil!',
       'token' => $token
     ]);
   }
